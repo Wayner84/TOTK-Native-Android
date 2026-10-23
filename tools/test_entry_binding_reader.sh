@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"; out="$ROOT/build/host-tests/entry-binding-fixtures"; rm -rf "$out"; mkdir -p "$out"
-python - "$(cygpath -w "$out")" <<'PY'
+out_for_python=$out
+if command -v cygpath >/dev/null 2>&1; then
+  out_for_python=$(cygpath -w "$out")
+fi
+python - "$out_for_python" <<'PY'
 import hashlib, pathlib, struct, sys
 out=pathlib.Path(sys.argv[1]); H=160; M=176; E=36; P=H+3*M+2*E; N=P+32
 b=bytearray(P); struct.pack_into('<8sHHII',b,0,b'TOTK-EBT\0',1,0,3,N)
