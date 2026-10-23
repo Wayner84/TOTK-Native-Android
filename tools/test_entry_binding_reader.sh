@@ -50,11 +50,13 @@ g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -O0 -Iandroid/src \
   -c android/src/entry_binding_reader.cpp \
   -o build/host-tests/entry_binding_reader.production.o
 args=(build/host-tests/entry-binding-fixtures)
-[[ -f private/entry-bindings/v143.entry-binding.bin ]] && \
+expected_checks=85
+if [[ -f private/entry-bindings/v143.entry-binding.bin ]]; then
   args+=(private/entry-bindings/v143.entry-binding.bin)
+  expected_checks=86
+fi
 output=$(./build/host-tests/entry_binding_reader_test "${args[@]}")
 printf '%s\n' "$output"
-expected_checks=86
 [[ "$output" != *"result=FAIL"* ]]
 [[ "$(grep -c '^test=' <<< "$output")" -eq "$expected_checks" ]]
 [[ "$output" == *"summary: $expected_checks checks, PASS"* ]]
