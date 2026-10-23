@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/Wayner84/TOTK-Native-Android/security/advisories/new
+    about: Privately report memory-safety or accidental-data-exposure issues

@@ -1,0 +1,49 @@
+# Proprietary/private inputs and generated game-derived material
+/private/**
+!/private/README.md
+*.xci
+*.nsp
+*.nca
+*.tik
+*.cert
+*.keys
+*.romfs
+*.nro
+*.nso
+*.kip
+*.elf
+
+# Local evidence and operational handover files
+/logs/**
+!/logs/README.md
+/HANDOVER.md
+/WORKLOG.md
+/MIGRATION_PLAN.md
+/PLAN.md
+/RESEARCH.md
+/DECISIONS.md
+
+# Build/output
+/build/
+/android/.gradle/
+/android/local.properties
+/android/**/build/
+*.apk
+*.aab
+*.o
+*.obj
+
+# Credentials and local configuration
+*.keystore
+*.jks
+.env
+.env.*
+!.env.example
+
+# Tool caches
+/.venv/
+__pycache__/
+*.pyc
+*.log.tmp
+.vscode/
+.idea/

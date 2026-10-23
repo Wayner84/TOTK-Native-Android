@@ -1,0 +1,95 @@
+#include "../android/src/vulkan_probe.h"
+#include <iostream>
+#include <limits>
+
+static VulkanSurfaceCandidate make(uint32_t p,uint32_t q,uint32_t f,uint32_t m,uint32_t min,uint32_t max,bool g,bool pr,bool sw){return {p,q,f,m,min,max,g,pr,sw};}
+int main() {
+    int passed = 0;
+    int failed = 0;
+    auto check = [&](const char* name, bool value) {
+        std::cout << "test=" << name << " result=" << (value ? "PASS" : "FAIL") << "\n";
+        value ? ++passed : ++failed;
+    };
+    check("reject_zero_formats", !vulkan_candidate_is_usable(make(0,0,0,1,1,0,true,true,true)));
+    check("reject_zero_present_modes", !vulkan_candidate_is_usable(make(0,0,1,0,1,0,true,true,true)));
+    check("reject_zero_min_images", !vulkan_candidate_is_usable(make(0,0,1,1,0,0,true,true,true)));
+    check("reject_missing_graphics", !vulkan_candidate_is_usable(make(0,0,1,1,1,0,false,true,true)));
+    check("reject_missing_present", !vulkan_candidate_is_usable(make(0,0,1,1,1,0,true,false,true)));
+    check("reject_missing_swapchain", !vulkan_candidate_is_usable(make(0,0,1,1,1,0,true,true,false)));
+    check("reject_invalid_image_bounds", !vulkan_candidate_is_usable(make(0,0,1,1,3,2,true,true,true)));
+    check("accept_unbounded_images", vulkan_candidate_is_usable(make(0,0,1,1,2,0,true,true,true)));
+    VulkanSurfaceCandidate c[4]={make(2,1,1,1,2,3,true,true,true),make(1,4,1,1,2,3,true,true,true),make(1,2,1,1,2,3,true,true,true),make(0,9,1,1,2,3,false,true,true)};
+    VulkanSurfaceCandidate s{};
+    check("select_candidate", vulkan_select_candidate(c,4,s));
+    check("select_lowest_physical", s.physical_device_index == 1);
+    check("select_lowest_queue", s.queue_family == 2);
+    check("reject_null_candidates", !vulkan_select_candidate(nullptr,4,s));
+    check("reject_empty_candidates", !vulkan_select_candidate(c,0,s));
+    VulkanSurfaceCandidate d[2]={make(0,4,1,1,1,0,true,true,true),make(1,0,1,1,1,0,true,true,true)};
+    check("select_first_device", vulkan_select_candidate(d,2,s));
+    check("select_first_queue", s.physical_device_index==0 && s.queue_family==4);
+    uint32_t image_count = 0;
+    check("image_count_min_plus_one", vulkan_choose_image_count(4, 64, image_count) && image_count == 5);
+    check("image_count_clamps_max", vulkan_choose_image_count(4, 4, image_count) && image_count == 4);
+    check("image_count_unbounded", vulkan_choose_image_count(4, 0, image_count) && image_count == 5);
+    check("image_count_rejects_overflow", !vulkan_choose_image_count(UINT32_MAX, 0, image_count));
+    check("image_count_rejects_bounds", !vulkan_choose_image_count(5, 4, image_count));
+    VulkanSwapchainExtentChoice extent{};
+    check("extent_fixed", vulkan_choose_extent(1200, 2608, 1, 1, 1, 4096, 1, 4096, extent) && extent.width == 1200 && extent.height == 2608);
+    check("extent_clamps_window", vulkan_choose_extent(UINT32_MAX, UINT32_MAX, 5000, 2, 10, 1000, 10, 1000, extent) && extent.width == 1000 && extent.height == 10);
+    check("extent_rejects_zero", !vulkan_choose_extent(UINT32_MAX, UINT32_MAX, 0, 2, 1, 10, 1, 10, extent));
+    VulkanSwapchainFormatChoice formats[] = {{1, 1}, {44, 0}, {2, 2}};
+    VulkanSwapchainFormatChoice format{};
+    check("format_prefers_bgra_srgb", vulkan_choose_format(formats, 3, format) && format.format == 44 && format.color_space == 0);
+    VulkanSwapchainFormatChoice fallback[] = {{7, 0}, {44, 9}};
+    check("format_fallback_colorspace_zero", vulkan_choose_format(fallback, 2, format) && format.format == 7 && format.color_space == 0);
+    VulkanSwapchainFormatChoice nonzero_fallback[] = {{7, 9}};
+    check("format_fallback_nonzero_colorspace", vulkan_choose_format(nonzero_fallback, 1, format) && format.format == 7 && format.color_space == 9);
+    VulkanSwapchainFormatChoice undefined_formats[] = {{0, 0}, {0, 9}};
+    check("format_rejects_all_undefined", !vulkan_choose_format(undefined_formats, 2, format));
+    const uint32_t modes[] = {1, 2};
+    check("present_requires_fifo", vulkan_choose_fifo(modes, 2, 2));
+    check("present_rejects_fifo_absent", !vulkan_choose_fifo(modes, 2, 3));
+    check("usage_supported", vulkan_supports_swapchain_usage(0x14, 0x4));
+    check("usage_unsupported", !vulkan_supports_swapchain_usage(0x10, 0x4));
+    const uint32_t alpha_support[] = {8 | 1};
+    uint32_t alpha = 0;
+    check("composite_alpha_preference", vulkan_choose_composite_alpha(alpha_support, 1, alpha) && alpha == 1);
+    check("composite_alpha_rejects_zero", !vulkan_choose_composite_alpha(nullptr, 0, alpha));
+    check("fifo_rejects_null", !vulkan_choose_fifo(nullptr, 1, 2));
+    check("fifo_rejects_empty", !vulkan_choose_fifo(modes, 0, 2));
+    check("usage_required_zero", vulkan_supports_swapchain_usage(0, 0));
+    check("acquired_index_range", vulkan_acquired_index_valid(1, 2) && !vulkan_acquired_index_valid(2, 2));
+    check("acquired_index_rejects_zero_count", !vulkan_acquired_index_valid(0, 0));
+    const VulkanClearPlan clear_plan = vulkan_magenta_clear_plan();
+    check("clear_plan_magenta", vulkan_clear_plan_valid(clear_plan) && clear_plan.r == 1 && clear_plan.g == 0 && clear_plan.b == 1 && clear_plan.a == 1);
+    check("clear_color_magenta", vulkan_clear_color_valid(1, 0, 1, 1));
+    check("clear_color_rejects_out_of_range", !vulkan_clear_color_valid(1.1f, 0, 1, 1));
+    check("clear_color_rejects_nan", !vulkan_clear_color_valid(std::numeric_limits<float>::quiet_NaN(), 0, 1, 1));
+    check("clear_attachment_policy", vulkan_clear_attachment_policy(0, 1000001002u, 1, 0));
+    auto wrong_plan = clear_plan;
+    wrong_plan.load_op = 0;
+    check("clear_plan_rejects_wrong_load", !vulkan_clear_plan_valid(wrong_plan));
+    wrong_plan = clear_plan; wrong_plan.store_op = 1;
+    check("clear_plan_rejects_wrong_store", !vulkan_clear_plan_valid(wrong_plan));
+    wrong_plan = clear_plan; wrong_plan.initial_layout = 1;
+    check("clear_plan_rejects_wrong_layout", !vulkan_clear_plan_valid(wrong_plan));
+    check("clear_image_count_bound", vulkan_clear_image_count_valid(0, 5) && !vulkan_clear_image_count_valid(5, 5) && !vulkan_clear_image_count_valid(0, 33));
+    const uint32_t valid_order[] = {1, 2, 3};
+    const uint32_t swapped_order[] = {2, 1, 3};
+    const uint32_t partial_order[] = {1, 2};
+    check("clear_cleanup_order", vulkan_clear_cleanup_order_valid(valid_order, 3));
+    check("clear_cleanup_order_rejects_swapped", !vulkan_clear_cleanup_order_valid(swapped_order, 3));
+    check("clear_cleanup_order_rejects_partial", !vulkan_clear_cleanup_order_valid(partial_order, 2));
+    check("extent_rejects_mixed_sentinel", !vulkan_choose_extent(UINT32_MAX, 100, 1, 1, 1, 10, 1, 200, extent));
+    check("extent_rejects_zero_max", !vulkan_choose_extent(UINT32_MAX, UINT32_MAX, 1, 1, 1, 0, 1, 10, extent));
+    check("extent_rejects_max_below_min", !vulkan_choose_extent(UINT32_MAX, UINT32_MAX, 1, 1, 10, 9, 1, 10, extent));
+    check("extent_rejects_fixed_zero", !vulkan_choose_extent(0, 10, 1, 1, 1, 10, 1, 10, extent));
+    check("extent_rejects_fixed_outside_bounds", !vulkan_choose_extent(11, 10, 1, 1, 1, 10, 1, 10, extent));
+    check("lifecycle_idle_failure_forbids_cleanup", !vulkan_lifecycle_decision(true, false, false).cleanup_allowed && !vulkan_lifecycle_decision(true, false, false).work_complete);
+    check("lifecycle_pre_submit_cleanup", vulkan_lifecycle_decision(false, false, false).cleanup_allowed && !vulkan_lifecycle_decision(false, false, false).work_complete);
+    check("lifecycle_present_failure_cleanup", vulkan_lifecycle_decision(true, false, true).cleanup_allowed && vulkan_lifecycle_decision(true, false, true).work_complete && vulkan_lifecycle_decision(true, false, true).result == VulkanLifecycleResult::present_failed);
+    check("lifecycle_success_cleanup", vulkan_lifecycle_decision(true, true, true).cleanup_allowed && vulkan_lifecycle_decision(true, true, true).work_complete && vulkan_lifecycle_decision(true, true, true).result == VulkanLifecycleResult::success);
+    std::cout << "summary passed=" << passed << " failed=" << failed << "\n";
+    return failed ? 1 : 0;
+}

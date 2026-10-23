@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python tests
+        run: python -m unittest discover -s tests -v
+      - name: Native host contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in \
+            tools/test_module_image.sh \
+            tools/test_guest_window.sh \
+            tools/test_vm_query.sh \
+            tools/test_signal_context.sh \
+            tools/test_guest_thread_context.sh \
+            tools/test_guest_startup_plan.sh \
+            tools/test_entry_binding_reader.sh \
+            tools/test_entry_binding_consumption.sh \
+            tools/test_relocation_stream.sh \
+            tools/test_private_elf.sh \
+            tools/test_vulkan_probe.sh; do
+            echo "=== $test ==="
+            bash "$test"
+          done
+      - name: Whitespace check
+        run: git diff --check

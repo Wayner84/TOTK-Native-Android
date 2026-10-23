@@ -1,0 +1,26 @@
+name: Research or implementation proposal
+description: Propose a bounded contribution area
+title: "[Proposal]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Proposed boundary
+      description: Define the exact service, ABI, Vulkan/NVN or tooling boundary.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Public evidence and references
+      description: Link compatible open-source references. Do not include proprietary game material.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Non-proprietary test strategy
+      description: Explain how this can be validated with synthetic fixtures and fail-closed checks.
+    validations:
+      required: true

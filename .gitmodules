@@ -1,0 +1,12 @@
+[submodule "third_party/LASRecomp"]
+	path = third_party/LASRecomp
+	url = https://github.com/peiikai/LASRecomp.git
+[submodule "third_party/LASRecompAndroid"]
+	path = third_party/LASRecompAndroid
+	url = https://github.com/mamcjr/LASRecompAndroid.git
+[submodule "third_party/MacNativeGames"]
+	path = third_party/MacNativeGames
+	url = https://github.com/ly05010419/MacNativeGames.git
+[submodule "third_party/SuperMarioWonderRecomp"]
+	path = third_party/SuperMarioWonderRecomp
+	url = https://github.com/BelmanteGu/SuperMarioWonderRecomp.git

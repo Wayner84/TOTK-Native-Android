@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible defect using non-proprietary fixtures
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach ROMs, keys, game binaries, extracted assets, generated game code, private hashes or local dump paths.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What failed, and at which validation/runtime boundary?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Synthetic reproduction
+      description: Provide steps using repository fixtures or a minimal non-proprietary case.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, compiler, Android API/ABI and GPU family. Omit serials, account names and private paths.
